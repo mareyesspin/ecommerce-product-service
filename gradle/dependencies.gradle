@@ -11,7 +11,7 @@ dependencies {
 
 
 
-    implementation 'com.github.mareyesspin:ecommerce-core:1.0.6'
+    implementation 'com.github.mareyesspin:ecommerce-core:1.0.7'
 
     implementation platform("software.amazon.awssdk:bom:$awssdkBomVersion")
     implementation 'software.amazon.awssdk:sqs'
