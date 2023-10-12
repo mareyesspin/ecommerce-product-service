@@ -1,0 +1,122 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.11'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'groovy'
+
+    id 'org.sonarqube' version '3.3'
+
+}
+
+apply plugin: "org.sonarqube"
+apply plugin: "jacoco"
+apply from: "${rootDir}/gradle/dependencies.gradle"
+apply from: "${rootDir}/gradle/jacoco.gradle"
+apply from: "${rootDir}/gradle/version.gradle"
+
+
+group='com.techtrove'
+
+version = gitHash //Adcds the HEAD git hash as version for the current service
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+ext {
+    lineCoverage = 0.00
+    branchCoverage = 0.00
+    coverageExclude = ['**/SpeiTransactionServiceApp.class',
+                       '**/com/spin/spei/transaction/interfaces*',
+                       '**/com/spin/spei/transaction/models/*']
+    set('snakeyaml.version','2.0')
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+
+    exclude group: 'net.sf.saxon', module: 'Saxon-HE'
+    exclude group: 'org.aspectj', module: 'aspectjweaver'
+    exclude group: 'software.amazon.awssdk', module: 'url-connection-client'
+    exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
+    exclude group: 'com.github.spotbugs', module: 'spotbugs-annotations'
+
+
+}
+
+sourceSets {
+    test {
+        groovy {
+            srcDirs = ['src/test/groovy']
+        }
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+}
+
+test { // only needed if doing 'gradle test'
+    useJUnitPlatform()
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+
+}
+
+
+
+tasks.withType(JavaCompile) {
+    configure(options) {
+        options.compilerArgs  << '-Xlint:-processing' << '-Xlint:-serial' << '-Xlint:all' << '-Amapstruct.unmappedTargetPolicy=IGNORE'
+        options.deprecation = true
+    }
+}
+
+tasks.withType(Copy).all {
+    duplicatesStrategy 'exclude'
+}
+
+task env(group: 'Help', description: 'Displays all the environment variables required by the service') {
+    doLast {
+        File file = file('src/main/resources/application.yml')
+        if (file.exists()) {
+            String line
+            def noOfLines = 0
+
+            file.withReader { reader ->
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains('${')) {
+                        println line.substring(line.indexOf('${') + 2, line.indexOf('}'))
+                    }
+                    noOfLines++
+                }
+            }
+        }
+    }
+}
+
+compileJava {
+    doLast {
+        copy {
+            from "./scripts"
+            into "./build/tmp/scripts/"
+        }
+    }
+}
+
+clean {
+    delete "out"
+    delete "src/main/generated"
+    delete "src/main/groovy/generated"
+}
+
+
+

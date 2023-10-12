@@ -1,0 +1,65 @@
+# ------------------- SERVICE ------------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}
+  annotations:
+    alb.ingress.kubernetes.io/target-type: ip
+  labels:
+    app: ${APP_NAME}
+    stage: ${STAGE}
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8007
+    - name: https
+      port: 443
+      targetPort: 8007
+  type: NodePort
+  selector:
+    app: ${APP_NAME}
+---
+# ------------------- HPA ------------------- #
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ${APP_NAME}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${APP_NAME}
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+
+---
+# ------------------- SERVICE ACCOUNT ------------------- #
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${STAGE}-eks-${APP_NAME}"
+  labels:
+    app.kubernetes.io/name: ${APP_NAME}
+  name: ${APP_NAME}
+
+---
+# ------------------- CLUSTER ROLE BINDING ------------------- #
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: ${APP_NAME}-fluentd-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fluentd-spring
+subjects:
+  - kind: ServiceAccount
+    name: ${APP_NAME}
+    namespace: ${STAGE}
+
+---
+# ------------------- DEPLOYMENT ------------------- #

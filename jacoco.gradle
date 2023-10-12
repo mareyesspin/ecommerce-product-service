@@ -1,0 +1,92 @@
+apply plugin: "jacoco"
+
+jacoco {
+    reportsDir = file("build/jacoco")
+}
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+    reports {
+        xml.enabled true
+        csv.enabled true
+        html.destination file("${buildDir}/jacocoHtml")
+    }
+
+    afterEvaluate {
+        getClassDirectories().setFrom(classDirectories.files.collect {
+            fileTree(dir: it, exclude: project.extensions.ext.coverageExclude << '**/libs/*')
+        })
+    }
+
+    doLast {
+        def report = file("${jacoco.reportsDir}/test/jacocoTestReport.xml")
+        printCoverage(report)
+    }
+}
+
+def printCoverage(File xml) {
+    if (!xml.exists()) return
+
+    def parser = new XmlParser()
+    parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+    parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+    def results = parser.parse(xml)
+
+    def percentage = {
+        if (it == null) {
+            return 0.0
+        }
+        def covered = it.'@covered' as Double
+        def missed = it.'@missed' as Double
+        ((covered / (covered + missed)) * 100).round(2)
+    }
+
+    def counters = results.counter
+    def metrics = [
+            'Branch'     : percentage(counters.find { it.'@type'.equals('BRANCH') }),
+            'Line'       : percentage(counters.find { it.'@type'.equals('LINE') }),
+    ]
+
+    logger.quiet("----- Code Coverage ----------")
+    metrics.each { key, value -> logger.quiet(sprintf(" - %-8s: %6.2f%%", key, value)) }
+    logger.quiet("------------------------------")
+}
+
+project.afterEvaluate {
+    jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    counter = 'BRANCH'
+                    minimum = project.extensions.ext.branchCoverage
+                }
+            }
+            rule {
+                limit {
+                    counter = 'LINE'
+                    minimum = project.extensions.ext.lineCoverage
+                }
+            }
+        }
+        afterEvaluate {
+            getClassDirectories().setFrom(classDirectories.files.collect {
+                fileTree(dir: it, exclude: project.extensions.ext.coverageExclude << '**/libs/*')
+            })
+        }
+    }.doFirst {
+        println "branch min coverage ratio: ${project.extensions.ext.branchCoverage}"
+        println "line   min coverage ratio: ${project.extensions.ext.lineCoverage}"
+        println "coverage exclude: ${project.extensions.ext.coverageExclude << '**/libs/*'}"
+    }
+
+    .doLast {
+        def report = file("${jacoco.reportsDir}/test/jacocoTestReport.xml")
+        printCoverage(report)
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification

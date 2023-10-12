@@ -1,0 +1,80 @@
+/**
+ * This file exposes a version string which uses the github repo as a source of truth.
+ *
+ * By convention this expects that:
+ * * there's a master branch that will contain releases
+ * * there will be feature branches branched out of master
+ * * each named version has a corresponding tag that leads to the releases' source code.
+ * * tags follow a pattern and contain a version string: e.g. v0.0.1 v10.0.0 v4.6.8-qa
+ * * version strings follow semver: 0.0.1 10.0.0 4.6.8-qa
+ * * `-dirty` suffix is reserved for taging non-committed changes: there are no tags with `-dirty` suffix
+ * * Other manual or automated process creates the tag/release externally.
+ *
+ * The intention of this script is to make possible that:
+ * * From a version string we can trace back to a commit in this git repo
+ * * From a glance we can take a non-release artifact and relate it to its closest release
+ * * Prevent non-reproducible artifacts to look like releases.
+ *
+ *
+ * The lifecycle of a change looks like:
+ * * 0.0.1 is tagged as v0.0.1 in commit in master
+ * * 0.0.1 may appear later in a newly created branch which hasnt made any commits (since it shares the same commit w/ master)
+ * * 0.0.1-dirty appears when changes are written locally but not yet commited
+ * * 0.0.1-c31368ccd appears when a new commit is added to the feature branch
+ * * 0.0.2 is created later by externally creating tag 0.0.2 after the feature branch is committed to master
+ *
+ * * Likewise for a hypothetical version 0.0.1-qa:
+ * * 0.0.1-qa is tagged as v0.0.1-q in commit in master
+ * * 0.0.1-qa may appear later in a newly created branch which hasnt made any commits (since it shares the same commit w/ master)
+ * * 0.0.1-qa-dirty appears when changes are written locally but not yet commited
+ * * 0.0.1-qa-c31368ccd appears when a new commit is added to the feature branch
+ * * 0.0.2-qa is created later by externally creating tag 0.0.2-qa after the feature branch is committed to the base branch (qa most likely)
+ *
+ * TODO: move this to some library that can be easily import from somewhere else.
+ */
+ext {
+    gitHash = { ->
+
+        // isDirty(): Check if working dir has changes outisde of the current (HEAD) commit.
+        def dirtyBaos = new ByteArrayOutputStream()
+        exec {
+            commandLine 'sh', '-c', 'git diff --quiet || printf %s -dirty'
+            standardOutput = dirtyBaos
+        }
+        def dirtySuffix = dirtyBaos.toString().trim()
+
+        // CASE 2: This commit is not tagged either because:
+        //      2.a: It is a new feature being developed.
+        //      2.b: We've never release anything in this repo.
+        // In both sub-cases we need the commit hash to accurately trace back this current
+        // work directory using only the version string.
+
+        // current commit short hash()
+        def gitHashBaos = new ByteArrayOutputStream()
+        exec {
+            commandLine 'sh', '-c', 'git rev-parse HEAD'
+            standardOutput = gitHashBaos
+        }
+        def currentCommitHash = gitHashBaos.toString().trim()
+
+        return "${currentCommitHash}${dirtySuffix}"
+    }.call() as String
+
+    gitBranch = {
+        def baos = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'branch', '--show-current' //Always gets current branch name where the code is being deployed
+            standardOutput = baos
+        }
+        return baos.toString()
+    }.call() as String
+}
+
+/**
+ * Print git version and app name for user, and to expose it in githubactions env
+ */
+task printGitHash {
+    println gitHash
+    println "\"SERVICE_HASH=${gitHash}\" >> \$GITHUB_OUTPUT"
+    println "\"APP_NAME=${project.name}\" >> \$GITHUB_OUTPUT"
+}

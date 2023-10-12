@@ -1,0 +1,17 @@
+<configuration scan="true" debug="true">
+    <springProperty scope="context" name="application_name" source="spring.application.name"/>
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS, America/Monterrey} %5p ${PID:- } -***-- [%15.15t{14},${application_name},%X{X-TraceId:-}] %-40.40logger{39} %mdc{x-request-id:-} : %m%n"/>
+
+
+
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="Console"/>
+    </root>
+</configuration>

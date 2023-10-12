@@ -1,0 +1,66 @@
+.gradle
+build/
+*/build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!**/src/main/**
+!**/src/test/**
+**/src/main/generated/
+**/src/main/groovy/generated/**
+.mvn
+mvnw
+mvnw.cmd
+.checkstyle
+
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+.history/
+
+bin
+/.project
+
+.DS_Store
+
+### STS ###
+.metadata
+.plugins
+
+**/.terraform/**
+**/terraform.tfstate*
+/**/gradlew.bat
+/**/gradlew
+/**/application-native.yml
+/**/application-prod.yml
+
+# Node directories
+node_modules
+
+# gradle
+
+/**/caches/**
+/**/daemon/**
+/**/native/**

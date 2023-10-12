@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: ecommerce-product-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/DB_PRODUCTS
+    username: postgres
+    password: mysecretpassword
+
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+    generate-ddl: false
+
+server:
+  port: 8002
+  servlet:
+    context-path: /ecommerce-product-service
+
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: false
+
+
+
+aws:
+  region: ${AWS_REGION:us-east-1}
+
+sqs:
+  spei-in-operation:
+    url: ${SQS_SPEI_IN_QUEUE_URL:}
+  spei-out-operation:
+    url: ${SQS_SPEI_OUT_QUEUE_URL:}
+  spei-rules-operation:
+    url: ${SQS_SPEI_RULES_QUEUE_URL:}
+  max-messages: ${SQS_DEPOSIT_MAX_MESSAGES:10}
